@@ -6,6 +6,7 @@ const allTodos = require("../mock-data/all-todos.json");
 
 TodoModel.create = jest.fn();
 TodoModel.find = jest.fn();
+TodoModel.findById = jest.fn();
 
 let req, res, next
 beforeEach(() => {
@@ -69,3 +70,34 @@ describe("TodoController.getTodos", () => {
         expect(next).toBeCalledWith(errorMessage);
     })
 })
+
+describe("TodoController.getTodoById", () => {
+    it("should have a getTodoById function", () => {
+        expect(typeof TodoController.getTodoById).toBe("function")
+    })
+    it("should call TodoModel.findById with route parameters", async () => {
+        req.params.todoId = "683a29ca5cecc113678a159e";
+        await TodoController.getTodoById(req, res, next);
+        expect(TodoModel.findById).toBeCalledWith("683a29ca5cecc113678a159e");
+    })
+    it("should return 200 response code", async () => {
+        TodoModel.findById.mockReturnValue(newTodo);
+        await TodoController.getTodoById(req, res, next);
+        expect(res.statusCode).toBe(200);
+        expect(res._getJSONData()).toStrictEqual(newTodo);
+        expect(res._isEndCalled()).toBeTruthy();
+    })
+    it("should do error handling", async () => {
+        const errorMessage = { message: 'Todo not found' };
+        const rejectedPromise = Promise.reject(errorMessage);
+        TodoModel.findById.mockReturnValue(rejectedPromise);
+        await TodoController.getTodoById(req, res, next);
+        expect(next).toBeCalledWith(errorMessage);
+    })
+    it("should return 404 if todo not found", async () => {
+        TodoModel.findById.mockReturnValue(null);
+        await TodoController.getTodoById(req, res, next);
+        expect(res.statusCode).toBe(404);
+        expect(res._isEndCalled()).toBeTruthy();
+    })
+});
